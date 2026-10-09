@@ -31,4 +31,15 @@ The assignment says under 10,000 works. Some famous ones are too large (Harry Po
 
 ```bash
 no_proxy=archiveofourown.org NO_PROXY=archiveofourown.org AO3_CRAWLER_CONTACT="peichun@alumni.unc.edu" .venv/bin/python -m ao3crawler.listing "Macbeth - Shakespeare"
+93687511
+94174341
+92481121
+93866181
+...
 ```
+
+Success:
+- Output comes in bursts of 20 in terms of listing. The script prints one page’s IDs, waits 5 seconds, then fetches the next page, which is taking AO3 up to 20 seconds at the moment. Quiet gaps of half a minute are normal.
+- There are 30 pages. The whole run takes roughly 10 minutes.
+- The last line reads 593 works, 593 unique
+- A few retry messages. A line like HTTP 525 on ... (attempt 1/3) followed by a 30-second pause.
