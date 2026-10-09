@@ -9,8 +9,8 @@ import requests
 BASE_URL = "https://archiveofourown.org"
 BOT_NAME = "AO3FandomResearchCrawler"
 DELAY = 5  # seconds between requests
-ATTEMPTS = 3  # tries per page when AO3 times out or answers with a server error
-RETRY_WAIT = 30  # seconds to wait before trying again
+ATTEMPTS = 6  # tries per page when AO3 times out or answers with a server error
+RETRY_WAIT = 30  # seconds before the first retry; doubles each time (30, 60, ... 480)
 
 class Client:
     def __init__(self, contact):
@@ -33,18 +33,20 @@ class Client:
 
     def _fetch(self, path):
         for attempt in range(ATTEMPTS):
+            if attempt:
+                wait = RETRY_WAIT * 2 ** (attempt - 1)
+                print(f"{problem} on {path}; retry {attempt}/{ATTEMPTS - 1} in {wait}s")
+                time.sleep(wait)
             try:
                 response = self.session.get(BASE_URL + path, timeout=30)
             except requests.Timeout:
                 problem = "Timeout"
-            else:
-                if response.status_code < 500:
-                    response.raise_for_status()  # 403, 404, ... are not retried
-                    return response.text
-                problem = f"HTTP {response.status_code}"
-            print(f"{problem} on {path} (attempt {attempt + 1}/{ATTEMPTS})")
-            time.sleep(RETRY_WAIT)
-        raise RuntimeError(f"Gave up on {path} after {ATTEMPTS} attempts")
+                continue
+            if response.status_code < 500:
+                response.raise_for_status()  # 403, 404, ... are not retried
+                return response.text
+            problem = f"HTTP {response.status_code}"
+        raise RuntimeError(f"Gave up on {path} after {ATTEMPTS} attempts ({problem})")
 
 
 if __name__ == "__main__":
