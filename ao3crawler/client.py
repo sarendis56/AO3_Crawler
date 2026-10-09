@@ -2,12 +2,15 @@
 
 import os
 import time
+from pathlib import Path
+from urllib.parse import quote
 from urllib.robotparser import RobotFileParser
 
 import requests
 
 BASE_URL = "https://archiveofourown.org"
 BOT_NAME = "AO3FandomResearchCrawler"
+CACHE_DIR = Path("cache")  # every fetched page is kept here and never requested twice
 DELAY = 5  # seconds between requests
 ATTEMPTS = 6  # tries per page when AO3 times out or answers with a server error
 RETRY_WAIT = 30  # seconds before the first retry; doubles each time (30, 60, ... 480)
@@ -28,8 +31,14 @@ class Client:
         """Return the HTML of an AO3 page, e.g. get("/works/123")."""
         if not self.allowed(path):
             raise PermissionError(f"robots.txt disallows {path}")
+        file = CACHE_DIR / (quote(path, safe="") + ".html")
+        if file.exists():
+            return file.read_text(encoding="utf-8")
         time.sleep(DELAY)
-        return self._fetch(path)
+        html = self._fetch(path)
+        CACHE_DIR.mkdir(exist_ok=True)
+        file.write_text(html, encoding="utf-8")
+        return html
 
     def _fetch(self, path):
         for attempt in range(ATTEMPTS):

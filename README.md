@@ -26,6 +26,7 @@ The assignment says under 10,000 works. Some famous ones are too large (Harry Po
 - Retries in `client.py`: when a request times out (30 seconds) or AO3 answers with a server error (HTTP 500 and above, e.g. 525), the same page is tried again, up to 6 attempts in total (ATTEMPTS = 6).
 - The wait before each retry doubles: 30, 60, 120, 240, then 480 seconds (RETRY_WAIT = 30). A server that’s struggling gets longer and longer pauses, about 15 minutes in total, so retries are always slower than normal requests. This follows ToS as for a "gentle" crawling. After the 6th failed attempt it raises RuntimeError and the run stops.
 - 403 and 404 are never retried; they crash immediately, so a bot challenge is never retried.
+- Saved pages in `client.py`: every page that is fetched is written to `cache/` (CACHE_DIR), named after its path.
 - `tag_path(fandom)` turns a fandom name into its listing URL. AO3 replaces five characters with codes (for example / becomes *s*), and the rest is ordinary URL encoding. "Macbeth - Shakespeare" becomes /tags/Macbeth%20-%20Shakespeare/works.
 - `work_ids(client, fandom)` fetches the listing page by page through your Client and yields each work’s ID. It stops when a page has no “Next” link.
 - Running `listing.py` prints every ID, then a count of total and unique IDs.
