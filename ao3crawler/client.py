@@ -9,6 +9,7 @@ import requests
 BASE_URL = "https://archiveofourown.org"
 BOT_NAME = "AO3FandomResearchCrawler"
 DELAY = 5  # seconds between requests
+ATTEMPTS = 3  # tries per page when a request times out
 
 class Client:
     def __init__(self, contact):
@@ -30,9 +31,15 @@ class Client:
         return self._fetch(path)
 
     def _fetch(self, path):
-        response = self.session.get(BASE_URL + path, timeout=30)
-        response.raise_for_status()
-        return response.text
+        for attempt in range(ATTEMPTS):
+            try:
+                response = self.session.get(BASE_URL + path, timeout=30)
+                response.raise_for_status()
+                return response.text
+            except requests.Timeout:
+                print(f"Timed out on {path} (attempt {attempt + 1}/{ATTEMPTS})")
+                time.sleep(DELAY)
+        raise TimeoutError(f"Gave up on {path} after {ATTEMPTS} timeouts")
 
 
 if __name__ == "__main__":
