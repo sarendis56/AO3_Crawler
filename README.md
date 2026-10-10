@@ -143,3 +143,14 @@ Join through a link, for example who replied to whom:
 sqlite3 -header -column macbeth.db "SELECT r.author AS replier, p.author AS replied_to FROM comments r JOIN comments p ON p.comment_id = r.parent_id LIMIT 5"
 ```
 
+### Add a Second Fandom
+
+Say Hamlet - Shakespeare (1375 works):
+
+```bash
+no_proxy=archiveofourown.org NO_PROXY=archiveofourown.org AO3_CRAWLER_CONTACT="peichun@alumni.unc.edu" caffeinate -i sh -c '.venv/bin/python -m ao3crawler.works "Hamlet - Shakespeare" && .venv/bin/python -m ao3crawler.comments "Hamlet - Shakespeare"'
+
+.venv/bin/python -m ao3crawler.export "Hamlet - Shakespeare" hamlet.db
+```
+
+The commands above would collect the id and the work itself together, unlike we did for MacBeth.
