@@ -46,6 +46,11 @@ Success:
 - The last line reads 593 works, 593 unique
 - A few retry messages. A line like `HTTP 525 on ...; retry 1/5 in 30s` followed by a pause of that length.
 
+To keep the laptop open, use caffeinate:
+```bash
+AO3_CRAWLER_CONTACT="peichun@alumni.unc.edu" caffeinate -i .venv/bin/python -m ao3crawler.works "Macbeth - Shakespeare"
+```
+
 ## Extract the Content (Parsing)
 
 `parse_work(html)` in `parse.py` gives one dictionary per work:
@@ -58,6 +63,10 @@ For MacBeth - Shakespear:
 - All 593 of 593 are real work pages. None is an adult-warning page, a login page or an error page.
 They hold 1,739 chapters in 46 MB.
 - AO3 omits kudos, comments or bookmarks when they are zero, and status for works never updated. The storage stage will fill those in.
+
+```bash
+.venv/bin/python -m ao3crawler.parse
+```
 
 ## Extract the Comments
 
@@ -72,3 +81,31 @@ Only works with comments are requested. 162 works are with no comments.
   - Work page, saved 9 Oct 18:57 UTC: AO3’s comment count on it is 11. That is where the script gets its “of 11”.
   - Comments page, saved 10 Oct 03:06 UTC: AO3’s own count on it is 12, and we parsed 12 comments, all with unique IDs. The newest comment was posted on 9 Oct at 19:45 UTC, 48 minutes after the work page was saved.
   - Therefore, the saved comments are the timestamp of the later date among the above two.
+  
+```bash
+AO3_CRAWLER_CONTACT="peichun@alumni.unc.edu" caffeinate -i .venv/bin/python -m ao3crawler.comments "Macbeth - Shakespeare"
+```
+
+## Export Databases
+
+Schema:
+
+| Table      | Rows   | Each Roles Means:   | Columns                                                      |
+| ---------- | ------ | ------------------- | ------------------------------------------------------------ |
+| `works`    | 593    | a work              | `work_id`, `title`, `authors`, `rating`, `language`, `published`, `updated`, `words`, `chapters`, `comments`, `kudos`, `bookmarks`, `hits`, `series`, `collections`, `summary`, `fetched_at` |
+| `tags`     | 12,297 | one tag on one work | `work_id`, `type`, `tag`                                     |
+| `chapters` | 1,739  | a chapter           | `work_id`, `number`, `title`, `text`                         |
+| `comments` | 3,847  | a comment           | `comment_id`, `work_id`, `parent_id`, `author`, `guest`, `chapter`, `posted`, `text` |
+
+- `tags.type` is one of `warning`, `category`, `fandom`, `relationship`, `character`, `freeform`.
+- `authors`, `series` and `collections` hold several values joined with `; `. `authors` is empty for the 17 anonymous works.
+- `fetched_at` is when the work’s page was saved (UTC).
+- 5 chapters have empty text (image-only works). 3.06 million words in total, published between 2010 and October 2026. 1650 replies in the comments.
+
+How to build:
+
+```bash
+.venv/bin/python -m ao3crawler.export "Macbeth - Shakespeare" macbeth.db
+# Inspect:
+sqlite3 -header -column macbeth.db "SELECT rating, COUNT(*) FROM works GROUP BY rating"
+```
