@@ -4,12 +4,12 @@
 
 How to use:
 ```bash
-AO3_CRAWLER_CONTACT="you@example.org" .venv/bin/python -m ao3crawler.client
+$ AO3_CRAWLER_CONTACT="you@example.org" .venv/bin/python -m ao3crawler.client
 ```
 
 Replace with an academic email as outlined in the ToS. For my case:
 ```bash
-AO3_CRAWLER_CONTACT="peichun@alumni.unc.edu" .venv/bin/python -m ao3crawler.client
+$ AO3_CRAWLER_CONTACT="peichun@alumni.unc.edu" .venv/bin/python -m ao3crawler.client
 True /tags/Example/works?page=2
 True /works/123
 False /works?tag_id=Example
@@ -32,7 +32,7 @@ The assignment says under 10,000 works. Some famous ones are too large (Harry Po
 - Running `listing.py` prints every ID, then a count of total and unique IDs.
 
 ```bash
-no_proxy=archiveofourown.org NO_PROXY=archiveofourown.org AO3_CRAWLER_CONTACT="peichun@alumni.unc.edu" .venv/bin/python -m ao3crawler.listing "Macbeth - Shakespeare"
+$ no_proxy=archiveofourown.org NO_PROXY=archiveofourown.org AO3_CRAWLER_CONTACT="peichun@alumni.unc.edu" .venv/bin/python -m ao3crawler.listing "Macbeth - Shakespeare"
 93687511
 94174341
 92481121
