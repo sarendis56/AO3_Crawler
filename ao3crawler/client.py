@@ -12,6 +12,7 @@ BASE_URL = "https://archiveofourown.org"
 BOT_NAME = "AO3FandomResearchCrawler"
 CACHE_DIR = Path("cache")  # every fetched page is kept here and never requested twice
 DELAY = 5  # seconds between requests
+TIMEOUT = 60  # seconds to wait for AO3 to answer one request
 ATTEMPTS = 6  # tries per page when AO3 times out or answers with a server error
 RETRY_WAIT = 30  # seconds before the first retry; doubles each time (30, 60, ... 480)
 
@@ -59,7 +60,7 @@ class Client:
                 print(f"{problem} on {path}; retry {attempt}/{ATTEMPTS - 1} in {wait}s")
                 time.sleep(wait)
             try:
-                response = self.session.get(BASE_URL + path, timeout=30)
+                response = self.session.get(BASE_URL + path, timeout=TIMEOUT)
             except requests.Timeout:
                 problem = "Timeout"
                 continue

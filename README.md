@@ -23,7 +23,8 @@ The assignment says under 10,000 works. Some famous ones are too large (Harry Po
 
 ## A Robust Crawler for Listings
 
-- Retries in `client.py`: when a request times out (30 seconds) or AO3 answers with a server error (HTTP 500 and above, e.g. 525), the same page is tried again, up to 6 attempts in total (ATTEMPTS = 6).
+- Timeout in `client.py`: a request waits up to 60 seconds for AO3 to answer (TIMEOUT = 60). It was 30 at first, but AO3 can take 20 seconds or more to build a page when it is busy, and giving up early only makes the server build the same page again on the retry.
+- Retries in `client.py`: when a request times out or AO3 answers with a server error (HTTP 500 and above, e.g. 525), the same page is tried again, up to 6 attempts in total (ATTEMPTS = 6).
 - The wait before each retry doubles: 30, 60, 120, 240, then 480 seconds (RETRY_WAIT = 30). A server that’s struggling gets longer and longer pauses, about 15 minutes in total, so retries are always slower than normal requests. This follows ToS as for a "gentle" crawling. After the 6th failed attempt it raises RuntimeError and the run stops.
 - 403 and 404 are never retried; they crash immediately, so a bot challenge is never retried.
 - Saved pages in `client.py`: every page that is fetched is written to `cache/` (CACHE_DIR), named after its path.
