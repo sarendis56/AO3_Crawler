@@ -46,9 +46,9 @@ Success:
 - The last line reads 593 works, 593 unique
 - A few retry messages. A line like `HTTP 525 on ...; retry 1/5 in 30s` followed by a pause of that length.
 
-## Extract the Content
+## Extract the Content (Parsing)
 
-`parse_work(html)` gives one dictionary per work:
+`parse_work(html)` in `parse.py` gives one dictionary per work:
 - Identity: title, authors (empty for anonymous works), language, series, collections.
 - Tags, each a list: rating, warning, category, fandom, relationship, character, freeform.
 - Statistics: published, status (AO3’s name for the date last updated), words, chapters (such as "8/31"), comments, kudos, bookmarks, hits.
@@ -58,3 +58,17 @@ For MacBeth - Shakespear:
 - All 593 of 593 are real work pages. None is an adult-warning page, a login page or an error page.
 They hold 1,739 chapters in 46 MB.
 - AO3 omits kudos, comments or bookmarks when they are zero, and status for works never updated. The storage stage will fill those in.
+
+## Extract the Comments
+
+- Address: `/works/<id>?page=N&show_comments=true&view_adult=true&view_full_work=true`. This is the address AO3’s own “Comments” and page links lead to, and robots.txt allows it. AO3 has no lighter comments-only page for a plain request, so each one re-sends the work text as well.
+- Paging: AO3 shows 20 comment threads per page. The code follows the “Next” link until there is none.
+Only works with comments are requested. 162 works are with no comments.
+- Each comment becomes a dictionary: `id`, `parent_id` (the comment it replies to, or none), author, guest (true for commenters without an account), chapter, posted (date and time, UTC) and text.
+- Pages are saved to `cache/`.
+- I also found that there are collapsed threads, which are not followed for now. AO3 collapses deep reply chains behind links like “16 more comments in this thread”. Getting those means one extra request per collapsed thread.
+- The first work in the list has a deleted comment. AO3 leaves a placeholder for a deleted comment, “(Previous comment deleted.)”, with a comment ID but no author, date or text.
+- Interestingly, it might be the case that there is new comment between the time of page saving and the time of comment crawling:
+  - Work page, saved 9 Oct 18:57 UTC: AO3’s comment count on it is 11. That is where the script gets its “of 11”.
+  - Comments page, saved 10 Oct 03:06 UTC: AO3’s own count on it is 12, and we parsed 12 comments, all with unique IDs. The newest comment was posted on 9 Oct at 19:45 UTC, 48 minutes after the work page was saved.
+  - Therefore, the saved comments are the timestamp of the later date among the above two.
