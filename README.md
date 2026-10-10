@@ -1,4 +1,20 @@
-# AO3_Crawler
+# AO3 Crawler
+
+A crawler for one fandom on Archive of Our Own (AO3). Without logging in, it saves each work's metadata, text and comments into a SQLite database. The sample is the Macbeth - Shakespeare fandom (593 works), and `analysis.ipynb` is an exploratory analysis of it.
+
+The sections below follow the order in which the crawler was built.
+
+## Setup
+
+```bash
+python3 -m venv .venv
+```
+
+```bash
+.venv/bin/pip install -r requirements.txt
+```
+
+The sample database `macbeth.db` should be [downloaded](https://drive.google.com/file/d/16E98yMfeKC373nHFpUuBj-CoUsTqneY7/view?usp=sharing) separately and put next to `analysis.ipynb` to run the notebook.
 
 ## The First Crawler
 
@@ -7,7 +23,7 @@ How to use:
 $ AO3_CRAWLER_CONTACT="you@example.org" .venv/bin/python -m ao3crawler.client
 ```
 
-Replace with an academic email as outlined in the ToS. For my case:
+Replace with your own email as a courtesy. It goes into the User-Agent header of every request, so that AO3 can reach the person running the crawler. For my case:
 ```bash
 $ AO3_CRAWLER_CONTACT="peichun@alumni.unc.edu" .venv/bin/python -m ao3crawler.client
 True /tags/Example/works?page=2
@@ -19,7 +35,7 @@ False /downloads/123/work.epub
 ## Pick a Fandom!
 To choose a fandom: AO3 groups fandoms into 11 categories: Anime & Manga, Books & Literature, Cartoons & Comics & Graphic Novels, Celebrities & Real People, Movies, Music & Bands, Other Media, Theater, TV Shows, Video Games, and Uncategorized.
 
-The assignment says under 10,000 works. Some famous ones are too large (Harry Potter has 615,362, Marvel 702,844, Genshin Impact 255,284). Mid-sized ones fit well. For example, Hamlet - Shakespeare has 1375. Operation Mincemeat - SpitLip has 859. Hadestown has 1925. I am starting with a small MacBeth - Shakespeare (596).
+Some famous ones are too large (Harry Potter has 615,362, Marvel 702,844, Genshin Impact 255,284) to crawl. Mid-sized ones fit well. For example, Hamlet - Shakespeare has 1375. Operation Mincemeat - SpitLip has 859. Hadestown has 1925. I am starting with a relatively small Macbeth - Shakespeare.
 
 ## A Robust Crawler for Listings
 
@@ -60,7 +76,7 @@ AO3_CRAWLER_CONTACT="peichun@alumni.unc.edu" caffeinate -i .venv/bin/python -m a
 - Statistics: published, status (AO3’s name for the date last updated), words, chapters (such as "8/31"), comments, kudos, bookmarks, hits.
 - Text: summary, and content, a list of chapters each with a title and plain text, one line per paragraph.
 
-For MacBeth - Shakespear:
+For Macbeth - Shakespeare:
 - All 593 of 593 are real work pages. None is an adult-warning page, a login page or an error page.
 They hold 1,739 chapters in 46 MB.
 - AO3 omits kudos, comments or bookmarks when they are zero, and status for works never updated. The storage stage will fill those in.
@@ -146,12 +162,30 @@ sqlite3 -header -column macbeth.db "SELECT r.author AS replier, p.author AS repl
 
 ### Add a Second Fandom
 
-Say Hamlet - Shakespeare (1375 works):
+The same steps work for any fandom. Say Hamlet - Shakespeare (1,373 works). Fetch the works, then the comments:
 
 ```bash
 no_proxy=archiveofourown.org NO_PROXY=archiveofourown.org AO3_CRAWLER_CONTACT="peichun@alumni.unc.edu" caffeinate -i sh -c '.venv/bin/python -m ao3crawler.works "Hamlet - Shakespeare" && .venv/bin/python -m ao3crawler.comments "Hamlet - Shakespeare"'
+```
 
+Then build the database:
+
+```bash
 .venv/bin/python -m ao3crawler.export "Hamlet - Shakespeare" hamlet.db
 ```
 
-The commands above would collect the id and the work itself together, unlike we did for MacBeth.
+`works` collects the IDs and the work pages in one go, unlike what we did for Macbeth, where `listing` was run first.
+
+Note: I started this crawl but did not finish it. AO3 was answering with bursts of HTTP 525 errors and timeouts, and I stopped after 326 of the 1,373 work pages.
+
+## Exploratory Analysis
+
+`analysis.ipynb` reads `macbeth.db` and looks at how the fandom has grown, what is written, how works are received, and how readers and authors talk in the comments. The notebook is saved with its outputs, so it can be read on GitHub without running it.
+
+## Ethics
+
+- robots.txt: `Client` downloads robots.txt when it starts and checks every path against it before requesting. A disallowed path raises PermissionError. The rules for general crawlers disallow `/works?` (the search-style listing) and `/downloads/`, so the crawler uses the fandom's tag listing (`/tags/<fandom>/works`) and ordinary work pages, which are allowed.
+- Terms of Service: the ToS does not allow scraping to commercialise content, disrupting the site, or forging identifiers. The data here is for academic use only.
+- Load: one request at a time, 5 seconds apart (DELAY = 5). Retries wait longer than normal requests, from 30 up to 480 seconds. Every page is saved and never requested twice. The whole Macbeth sample took 1,082 requests: 30 listing pages, 593 works and 459 comment pages. It takes around overnight.
+- Identification: the User-Agent names the crawler and gives a contact email. It does not pretend to be a browser, and it does not log in.
+- Adult works: included on purpose, because leaving them out would bias the sample (12% of the works are Mature and 5% Explicit). The crawler adds `view_adult=true`, the same address AO3's own "Proceed" button leads to.
