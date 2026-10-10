@@ -21,7 +21,7 @@ To choose a fandom: AO3 groups fandoms into 11 categories: Anime & Manga, Books 
 
 The assignment says under 10,000 works. Some famous ones are too large (Harry Potter has 615,362, Marvel 702,844, Genshin Impact 255,284). Mid-sized ones fit well. For example, Hamlet - Shakespeare has 1375. Operation Mincemeat - SpitLip has 859. Hadestown has 1925. I am starting with a small MacBeth - Shakespeare (596).
 
-## A Robust Crawler
+## A Robust Crawler for Listings
 
 - Retries in `client.py`: when a request times out (30 seconds) or AO3 answers with a server error (HTTP 500 and above, e.g. 525), the same page is tried again, up to 6 attempts in total (ATTEMPTS = 6).
 - The wait before each retry doubles: 30, 60, 120, 240, then 480 seconds (RETRY_WAIT = 30). A server that’s struggling gets longer and longer pauses, about 15 minutes in total, so retries are always slower than normal requests. This follows ToS as for a "gentle" crawling. After the 6th failed attempt it raises RuntimeError and the run stops.
@@ -45,3 +45,16 @@ Success:
 - There are 30 pages. The whole run takes roughly 10 minutes.
 - The last line reads 593 works, 593 unique
 - A few retry messages. A line like `HTTP 525 on ...; retry 1/5 in 30s` followed by a pause of that length.
+
+## Extract the Content
+
+`parse_work(html)` gives one dictionary per work:
+- Identity: title, authors (empty for anonymous works), language, series, collections.
+- Tags, each a list: rating, warning, category, fandom, relationship, character, freeform.
+- Statistics: published, status (AO3’s name for the date last updated), words, chapters (such as "8/31"), comments, kudos, bookmarks, hits.
+- Text: summary, and content, a list of chapters each with a title and plain text, one line per paragraph.
+
+For MacBeth - Shakespear:
+- All 593 of 593 are real work pages. None is an adult-warning page, a login page or an error page.
+They hold 1,739 chapters in 46 MB.
+- AO3 omits kudos, comments or bookmarks when they are zero, and status for works never updated. The storage stage will fill those in.
