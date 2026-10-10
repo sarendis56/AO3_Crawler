@@ -90,7 +90,7 @@ AO3_CRAWLER_CONTACT="peichun@alumni.unc.edu" caffeinate -i .venv/bin/python -m a
 
 Schema:
 
-| Table      | Rows   | Each Roles Means:   | Columns                                                      |
+| Table      | Rows   | Each row is         | Columns                                                      |
 | ---------- | ------ | ------------------- | ------------------------------------------------------------ |
 | `works`    | 593    | a work              | `work_id`, `title`, `authors`, `rating`, `language`, `published`, `updated`, `words`, `chapters`, `comments`, `kudos`, `bookmarks`, `hits`, `series`, `collections`, `summary`, `fetched_at` |
 | `tags`     | 12,297 | one tag on one work | `work_id`, `type`, `tag`                                     |
@@ -102,10 +102,44 @@ Schema:
 - `fetched_at` is when the work’s page was saved (UTC).
 - 5 chapters have empty text (image-only works). 3.06 million words in total, published between 2010 and October 2026. 1650 replies in the comments.
 
+A row in works holds things a work has exactly one of: a title, a word count, a publication date. Chapters and tags are different, because the number of them varies per work.
+- Chapters: one work has 1 chapter, another has 33. Putting text in works would need either one giant text column (losing chapter boundaries and titles) or columns chapter_1 … chapter_33, mostly empty. One row per chapter avoids both, and keeps the works table small and fast to browse.
+- Tags: a work can have dozens across six types. One row per tag makes questions like “which character appears in the most works” a simple count. With tags crammed into one text column, every such question would mean splitting strings first.
+
 How to build:
 
 ```bash
 .venv/bin/python -m ao3crawler.export "Macbeth - Shakespeare" macbeth.db
-# Inspect:
+```
+
+How to inspect, for example the number of works per rating:
+
+```bash
 sqlite3 -header -column macbeth.db "SELECT rating, COUNT(*) FROM works GROUP BY rating"
 ```
+
+### How the tables connect
+
+Every table links back to `works` through `work_id`.
+
+| Link                                         | Meaning                                                     | Declared as  |
+| -------------------------------------------- | ----------------------------------------------------------- | ------------ |
+| `tags.work_id` → `works.work_id`             | which work a tag belongs to                                 | foreign key  |
+| `chapters.work_id` → `works.work_id`         | which work a chapter belongs to; `number` gives the order   | foreign key  |
+| `comments.work_id` → `works.work_id`         | which work a comment is on                                  | foreign key  |
+| `comments.parent_id` → `comments.comment_id` | which comment a reply answers; empty for top-level comments | plain column |
+
+- `comments.parent_id` is deliberately not a foreign key. 18 replies answer a comment that was later deleted; AO3 keeps the deleted comment's id in the thread but not its content, so that parent has no row.
+
+Print the schema with its links:
+
+```bash
+sqlite3 macbeth.db ".schema"
+```
+
+Join through a link, for example who replied to whom:
+
+```bash
+sqlite3 -header -column macbeth.db "SELECT r.author AS replier, p.author AS replied_to FROM comments r JOIN comments p ON p.comment_id = r.parent_id LIMIT 5"
+```
+

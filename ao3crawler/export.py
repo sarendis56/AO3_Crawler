@@ -18,11 +18,16 @@ CREATE TABLE works (
     kudos INTEGER, bookmarks INTEGER, hits INTEGER, series TEXT, collections TEXT,
     summary TEXT, fetched_at TEXT
 );
-CREATE TABLE tags (work_id INTEGER, type TEXT, tag TEXT);
-CREATE TABLE chapters (work_id INTEGER, number INTEGER, title TEXT, text TEXT);
+CREATE TABLE tags (
+    work_id INTEGER REFERENCES works(work_id), type TEXT, tag TEXT
+);
+CREATE TABLE chapters (
+    work_id INTEGER REFERENCES works(work_id), number INTEGER, title TEXT, text TEXT
+);
 CREATE TABLE comments (
-    comment_id INTEGER PRIMARY KEY, work_id INTEGER, parent_id INTEGER, author TEXT,
-    guest INTEGER, chapter TEXT, posted TEXT, text TEXT
+    comment_id INTEGER PRIMARY KEY, work_id INTEGER REFERENCES works(work_id),
+    parent_id INTEGER,  -- comment_id of the comment replied to; that row is absent if it was deleted
+    author TEXT, guest INTEGER, chapter TEXT, posted TEXT, text TEXT
 );
 """
 TAG_TYPES = ["warning", "category", "fandom", "relationship", "character", "freeform"]
@@ -32,6 +37,7 @@ def export(fandom, db_path):
     pages = SavedPages()
     Path(db_path).unlink(missing_ok=True)  # always rebuilt from scratch
     db = sqlite3.connect(db_path)
+    db.execute("PRAGMA foreign_keys = ON")  # SQLite only checks foreign keys when asked to
     db.executescript(SCHEMA)
     for work_id in work_ids(pages, fandom):
         work = parse_work(pages.get(work_path(work_id)))
