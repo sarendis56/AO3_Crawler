@@ -15,6 +15,18 @@ DELAY = 5  # seconds between requests
 ATTEMPTS = 6  # tries per page when AO3 times out or answers with a server error
 RETRY_WAIT = 30  # seconds before the first retry; doubles each time (30, 60, ... 480)
 
+
+def cache_file(path):
+    return CACHE_DIR / (quote(path, safe="") + ".html")
+
+
+class SavedPages:
+    """Stands in for Client when no requests should be made: reads saved pages only."""
+
+    def get(self, path):
+        return cache_file(path).read_text(encoding="utf-8")
+
+
 class Client:
     def __init__(self, contact):
         self.session = requests.Session()
@@ -31,7 +43,7 @@ class Client:
         """Return the HTML of an AO3 page, e.g. get("/works/123")."""
         if not self.allowed(path):
             raise PermissionError(f"robots.txt disallows {path}")
-        file = CACHE_DIR / (quote(path, safe="") + ".html")
+        file = cache_file(path)
         if file.exists():
             return file.read_text(encoding="utf-8")
         time.sleep(DELAY)
